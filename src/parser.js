@@ -1,18 +1,19 @@
 const R = require("ramda");
 
-const input = `(1 2)`;
+const input = `(1 (2 3) (4 (5)))`;
 
 function parse(str) {
-  const h = R.head(str);
+  const str1 = dropSpaces(str);
+  const h = R.head(str1);
 
   if (h === "(") {
-    return parseList(str);
+    return parseList(str1);
   }
   if (isNumber(h)) {
-    return parseNumber(str);
+    return parseNumber(str1);
   }
   if (h === `"`) {
-    return parseString(str);
+    return parseString(str1);
   }
 
   return null;
@@ -29,32 +30,60 @@ function parseList(str) {
     return [];
   }
 
-  return parseSpaceSeperatedList(body);
+  return parseListBody(body);
 }
 
 function stripBrackets(str) {
   return R.dropLast(1, R.tail(str));
 }
 
-function parseSpaceSeperatedList(str) {
+function parseListBody(str) {
   if (str.length === 0) {
     return [];
   }
 
-  const [elem, rest] = splitOnNextSpace(str);
-  return append(parse(elem), parseSpaceSeperatedList(rest));
-}
+  let elem, rest;
 
-function append(elem, rest) {
-  if (Array.isArray(rest)) {
-    return [elem].concat(rest);
+  if (R.head(str) === "(") {
+    [elem, rest] = splitAfterMatchingBracket(str);
+  } else {
+    [elem, rest] = splitOnNextSpace(str);
   }
 
-  return [elem];
+  return [parse(elem)].concat(parseListBody(dropSpaces(rest)));
+}
+
+function dropSpaces(str) {
+  return R.dropWhile(R.equals(" "), str);
+}
+
+function splitAfterMatchingBracket(str) {
+  function split(left, right, bracketCount) {
+    if (bracketCount === 0) {
+      return [left, right];
+    }
+
+    if (right.length === 0) {
+      throw new Error("Unbalanced brackets");
+    }
+
+    const h = R.head(right);
+
+    if (h === "(") {
+      return split(left + h, R.tail(right), bracketCount + 1);
+    }
+    if (h === ")") {
+      return split(left + h, R.tail(right), bracketCount - 1);
+    }
+
+    return split(left + h, R.tail(right), bracketCount);
+  }
+
+  return split("(", R.tail(str), 1);
 }
 
 function splitAt(at, str) {
-  return [R.slice(0, at, str), R.slice(at + 1, str.length, str)];
+  return [R.slice(0, at, str), R.slice(at, str.length, str)];
 }
 
 function splitOnNextSpace(str) {
