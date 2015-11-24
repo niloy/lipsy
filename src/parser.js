@@ -1,6 +1,6 @@
 const R = require("ramda");
 
-const input = `{1 true 2 false}`;
+const input = `#{1 1 2 2}`;
 
 function parse(str) {
   const str1 = dropSpaces(str);
@@ -21,8 +21,24 @@ function parse(str) {
   if (str1 === "true" || str1 === "false") {
     return parseBoolean(str1);
   }
+  if (str1.startsWith("#{")) {
+    return parseSet(str1);
+  }
 
   return null;
+}
+
+function parseSet(str) {
+  return parseSetBody(stripBrackets(R.tail(str)));
+}
+
+function parseSetBody(str) {
+  if (str.length === 0) {
+    return new Set();
+  }
+
+  const [elem, rest] = splitAfterNextToken(str);
+  return parseSetBody(rest).add(parse(elem));
 }
 
 function parseBoolean(str) {
