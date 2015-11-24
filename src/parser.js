@@ -1,6 +1,6 @@
 const R = require("ramda");
 
-const input = `(1 (2 3) (4 (5)))`;
+const input = `{1 2 "1" {3 (1 2)} (1) (2)}`;
 
 function parse(str) {
   const str1 = dropSpaces(str);
@@ -12,11 +12,33 @@ function parse(str) {
   if (isNumber(h)) {
     return parseNumber(str1);
   }
-  if (h === `"`) {
+  if (h === "\"") {
     return parseString(str1);
+  }
+  if (h === "{") {
+    return parseMap(str1);
   }
 
   return null;
+}
+
+function parseMap(str) {
+  return parseMapBody(stripBrackets(str));
+}
+
+function parseMapBody(str) {
+  if (str.length === 0) {
+    return new Map();
+  }
+
+  const [key, rest1] = splitAfterNextToken(str);
+  const [value, rest2] = splitAfterNextToken(rest1);
+  return setMap(parseMapBody(rest2), parse(key), parse(value));
+}
+
+function setMap(map, key, value) {
+  map.set(key, value);
+  return map;
 }
 
 function parseString(str) {
@@ -24,17 +46,23 @@ function parseString(str) {
 }
 
 function parseList(str) {
-  const body = stripBrackets(str);
-
-  if (body.length === 0) {
-    return [];
-  }
-
-  return parseListBody(body);
+  return parseListBody(stripBrackets(str));
 }
 
 function stripBrackets(str) {
   return R.dropLast(1, R.tail(str));
+}
+
+function splitAfterNextToken(str) {
+  const str1 = dropSpaces(str);
+
+  if (R.head(str1) === "(") {
+    return splitAfterMatchingBracket("(", ")", str1);
+  } if (R.head(str1) === "{") {
+    return splitAfterMatchingBracket("{", "}", str1);
+  } else {
+    return splitOnNextSpace(str1);
+  }
 }
 
 function parseListBody(str) {
@@ -42,22 +70,15 @@ function parseListBody(str) {
     return [];
   }
 
-  let elem, rest;
-
-  if (R.head(str) === "(") {
-    [elem, rest] = splitAfterMatchingBracket(str);
-  } else {
-    [elem, rest] = splitOnNextSpace(str);
-  }
-
-  return [parse(elem)].concat(parseListBody(dropSpaces(rest)));
+  const [elem, rest] = splitAfterNextToken(str);
+  return [parse(elem)].concat(parseListBody(rest));
 }
 
 function dropSpaces(str) {
-  return R.dropWhile(R.equals(" "), str);
+  return R.dropWhile(R.equals(" "), str).join("");
 }
 
-function splitAfterMatchingBracket(str) {
+function splitAfterMatchingBracket(openBracket, closeBracket, str) {
   function split(left, right, bracketCount) {
     if (bracketCount === 0) {
       return [left, right];
@@ -69,17 +90,17 @@ function splitAfterMatchingBracket(str) {
 
     const h = R.head(right);
 
-    if (h === "(") {
+    if (h === openBracket) {
       return split(left + h, R.tail(right), bracketCount + 1);
     }
-    if (h === ")") {
+    if (h === closeBracket) {
       return split(left + h, R.tail(right), bracketCount - 1);
     }
 
     return split(left + h, R.tail(right), bracketCount);
   }
 
-  return split("(", R.tail(str), 1);
+  return split(openBracket, R.tail(str), 1);
 }
 
 function splitAt(at, str) {
