@@ -1,6 +1,6 @@
 const R = require("ramda");
 
-const input = `#{1 1 2 2}`;
+const input = `(alert 5)`;
 
 function parse(str) {
   const str1 = dropSpaces(str);
@@ -25,7 +25,11 @@ function parse(str) {
     return parseSet(str1);
   }
 
-  return null;
+  return parseIdentifier(str1);
+}
+
+function parseIdentifier(str) {
+  return {type: "identifier", value: str};
 }
 
 function parseSet(str) {
