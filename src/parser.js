@@ -123,11 +123,11 @@ function splitAfterMatchingBracket(openBracket, closeBracket, str) {
       [() => isEmptyString(right), throwError],
       [() => h === openBracket, () => split(left + h, R.tail(right), bracketCount + 1)],
       [() => h === closeBracket, () => split(left + h, R.tail(right), bracketCount - 1)],
-      [R.T, split(left + h, R.tail(right), bracketCount)]
-    ]);
+      [R.T, () => split(left + h, R.tail(right), bracketCount)]
+    ])();
   }
 
-  return split(openBracket, R.tail(str), 1);
+  return split(R.head(str), R.tail(str), 1);
 }
 
 function splitAt(at, str) {
