@@ -12,6 +12,9 @@ function parse(str) {
   if (isNumber(h)) {
     return parseNumber(str1);
   }
+  if (h === "-" && isNumber(R.nth(1, str1))) {
+    return parseNumber(str1);
+  }
   if (h === "\"") {
     return parseString(str1);
   }
