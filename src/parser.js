@@ -1,6 +1,6 @@
 const R = require("ramda");
 
-const input = `:alert`;
+module.exports = parse;
 
 function parse(str) {
   const str1 = dropSpaces(str);
@@ -26,6 +26,9 @@ function parse(str) {
   }
   if (h === ":") {
     return parseSymbol(str1);
+  }
+  if (h === "[") {
+    return parseList(str);
   }
 
   return parseIdentifier(str1);
@@ -158,5 +161,3 @@ function isNumber(str) {
 function parseNumber(str) {
   return parseFloat(str);
 }
-
-console.log(parse(input));
