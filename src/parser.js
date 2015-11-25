@@ -4,37 +4,26 @@ module.exports = parse;
 
 function parse(str) {
   const str1 = dropSpaces(str);
-  const h = R.head(str1);
+  const startsWith = R.curry((needle, stack) => stack.startsWith(needle));
+  const startsWithRoundBracket = startsWith("(");
+  const startsWithDoubleQuote = startsWith("\"");
+  const startsWithCurlyBrace = startsWith("{");
+  const isBoolean = $ => $ === "true" || $ === "false";
+  const startsWithColon = startsWith(":");
+  const startsWithSquareBracket = startsWith("[");
+  const startsWithHashBracket = startsWith("#{");
 
-  if (h === "(") {
-    return parseList(str1);
-  }
-  if (isNumber(h)) {
-    return parseNumber(str1);
-  }
-  if (h === "-" && isNumber(R.nth(1, str1))) {
-    return parseNumber(str1);
-  }
-  if (h === "\"") {
-    return parseString(str1);
-  }
-  if (h === "{") {
-    return parseMap(str1);
-  }
-  if (str1 === "true" || str1 === "false") {
-    return parseBoolean(str1);
-  }
-  if (str1.startsWith("#{")) {
-    return parseSet(str1);
-  }
-  if (h === ":") {
-    return parseSymbol(str1);
-  }
-  if (h === "[") {
-    return parseList(str);
-  }
-
-  return parseIdentifier(str1);
+  return R.cond([
+    [startsWithRoundBracket,  parseList],
+    [isNumber,                parseNumber],
+    [startsWithDoubleQuote,   parseString],
+    [startsWithCurlyBrace,    parseMap],
+    [isBoolean,               parseBoolean],
+    [startsWithHashBracket,   parseSet],
+    [startsWithColon,         parseSymbol],
+    [startsWithSquareBracket, parseList],
+    [R.T,                     parseIdentifier]
+  ])(str1);
 }
 
 function parseSymbol(str) {
@@ -118,26 +107,24 @@ function dropSpaces(str) {
   return R.dropWhile(R.equals(" "), str).join("");
 }
 
+function isEmptyString(str) {
+  return str.length === 0;
+}
+
 function splitAfterMatchingBracket(openBracket, closeBracket, str) {
+  function throwError() {
+    throw new Error("Unbalanced brackets");
+  }
+
   function split(left, right, bracketCount) {
-    if (bracketCount === 0) {
-      return [left, right];
-    }
-
-    if (right.length === 0) {
-      throw new Error("Unbalanced brackets");
-    }
-
     const h = R.head(right);
-
-    if (h === openBracket) {
-      return split(left + h, R.tail(right), bracketCount + 1);
-    }
-    if (h === closeBracket) {
-      return split(left + h, R.tail(right), bracketCount - 1);
-    }
-
-    return split(left + h, R.tail(right), bracketCount);
+    return R.cond([
+      [() => bracketCount === 0, () => [left, right]],
+      [() => isEmptyString(right), throwError],
+      [() => h === openBracket, () => split(left + h, R.tail(right), bracketCount + 1)],
+      [() => h === closeBracket, () => split(left + h, R.tail(right), bracketCount - 1)],
+      [R.T, split(left + h, R.tail(right), bracketCount)]
+    ]);
   }
 
   return split(openBracket, R.tail(str), 1);
@@ -158,7 +145,7 @@ function splitOnNextSpace(str) {
 }
 
 function isNumber(str) {
-  return /\d/.test(str);
+  return /^-?\d$/.test(str);
 }
 
 function parseNumber(str) {
