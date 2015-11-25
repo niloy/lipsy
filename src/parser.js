@@ -2,12 +2,13 @@ const R = require("ramda");
 
 module.exports = parse;
 
+const startsWith = R.curry((needle, stack) => stack.startsWith(needle));
+const startsWithRoundBracket = startsWith("(");
+const startsWithDoubleQuote = startsWith("\"");
+const startsWithCurlyBrace = startsWith("{");
+
 function parse(str) {
   const str1 = dropSpaces(str);
-  const startsWith = R.curry((needle, stack) => stack.startsWith(needle));
-  const startsWithRoundBracket = startsWith("(");
-  const startsWithDoubleQuote = startsWith("\"");
-  const startsWithCurlyBrace = startsWith("{");
   const isBoolean = $ => $ === "true" || $ === "false";
   const startsWithColon = startsWith(":");
   const startsWithSquareBracket = startsWith("[");
@@ -85,13 +86,25 @@ function stripBrackets(str) {
 function splitAfterNextToken(str) {
   const str1 = dropSpaces(str);
 
-  if (R.head(str1) === "(") {
-    return splitAfterMatchingBracket("(", ")", str1);
-  } if (R.head(str1) === "{") {
-    return splitAfterMatchingBracket("{", "}", str1);
-  } else {
-    return splitOnNextSpace(str1);
+  return R.cond([
+    [startsWithRoundBracket,  splitAfterMatchingBracket.bind(null, "(", ")")],
+    [startsWithCurlyBrace,    splitAfterMatchingBracket.bind(null, "{", "}")],
+    [startsWithDoubleQuote,   splitAfterQuoteEnd],
+    [R.T,                     splitOnNextSpace]
+  ])(str1);
+}
+
+function splitAfterQuoteEnd(str) {
+  function split(left, right) {
+    const curr = R.head(right);
+    const prev = R.last(left);
+    return R.cond([
+      [() => curr === `"` && prev !== "\\", () => [left + curr, R.tail(right)]],
+      [R.T, () => split(left + curr, R.tail(right))]
+    ])();
   }
+
+  return split(R.head(str), R.tail(str));
 }
 
 function parseListBody(str) {
