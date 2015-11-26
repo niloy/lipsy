@@ -40,7 +40,7 @@ function parseSet(str) {
 }
 
 function parseSetBody(str) {
-  if (str.length === 0) {
+  if (isEmptyString(str)) {
     return new Set();
   }
 
@@ -57,7 +57,7 @@ function parseMap(str) {
 }
 
 function parseMapBody(str) {
-  if (str.length === 0) {
+  if (isEmptyString(str)) {
     return new Map();
   }
 
@@ -109,7 +109,7 @@ function splitAfterQuoteEnd(str) {
 }
 
 function parseListBody(str) {
-  if (str.length === 0) {
+  if (isEmptyString(str)) {
     return [];
   }
 
@@ -118,11 +118,11 @@ function parseListBody(str) {
 }
 
 function dropSpaces(str) {
-  return R.dropWhile(R.equals(" "), str).join("");
+  return R.dropWhile(R.test(/\s/), str).join("");
 }
 
 function isEmptyString(str) {
-  return str.length === 0;
+  return str.trim().length === 0;
 }
 
 function splitAfterMatchingBracket(openBracket, closeBracket, str) {
@@ -159,7 +159,7 @@ function splitOnNextSpace(str) {
 }
 
 function isNumber(str) {
-  return /^-?\d$/.test(str);
+  return /^-?\d/.test(str);
 }
 
 function parseNumber(str) {
