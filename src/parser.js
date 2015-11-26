@@ -22,7 +22,7 @@ function parse(str) {
     [isBoolean,               parseBoolean],
     [startsWithHashBracket,   parseSet],
     [startsWithColon,         parseSymbol],
-    [startsWithSquareBracket, parseList],
+    [startsWithSquareBracket, parseVector],
     [R.T,                     parseIdentifier]
   ])(str1);
 }
@@ -76,7 +76,13 @@ function parseString(str) {
 }
 
 function parseList(str) {
-  return parseListBody(stripBrackets(str));
+  const list = parseListBody(stripBrackets(str));
+  return Object.defineProperty(list, "type", {value: "list", enumerable: false});
+}
+
+function parseVector(str) {
+  const vector = parseListBody(stripBrackets(str));
+  return Object.defineProperty(vector, "type", {value: "vector", enumerable: false});
 }
 
 function stripBrackets(str) {
