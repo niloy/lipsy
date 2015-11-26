@@ -1,7 +1,7 @@
 const R = require("ramda");
 const parse = require("./parser");
 
-const ast = parse(`[1 (fn [x y] (+ x y)) 3]`);
+const ast = parse(`(fn [x & y] x)`);
 // console.log(ast);
 console.log(compile(ast));
 
@@ -91,7 +91,14 @@ function compileNil() {
 }
 
 function compileLambdaDefinition(args) {
-  const parameters = R.head(args).map(compile).join(", ");
+  const params = R.head(args);
+  const secondLastParam = R.compose(R.last, R.dropLast(1));
+  const hasRestParam = $ => $.length > 1 && secondLastParam($).value === "&";
+  const compileParams = $ => $.map(compile).join(", ");
+  const allExceptLast2 = R.dropLast(2);
+  const addEllipses = R.compose(R.concat(", ..."), compile, R.last);
+  const compileRestParams = $ => compileParams(allExceptLast2($)) + addEllipses($);
+  const parameters = R.ifElse(hasRestParam, compileRestParams, compileParams)(params);
   const compileStmt = $ => compile($) + ";";
   const isMultiStmtFunction = args => args.length > 2;
   const extractBody = R.compose(R.dropLast(1), R.tail);
@@ -104,9 +111,9 @@ function compileLambdaDefinition(args) {
       return ${lastStmt};
     })`
   );
-  const arrowFunction = `(${parameters}) => ${lastStmt}`;
+  const arrowFunction = `((${parameters}) => ${lastStmt})`;
 
-  return R.ifElse(isMultiStmtFunction, () => fullFunction, () => arrowFunction)(args);
+  return isMultiStmtFunction(args) ? fullFunction : arrowFunction;
 }
 
 function compileDefinition(args) {
