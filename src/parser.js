@@ -7,6 +7,7 @@ const startsWithRoundBracket = startsWith("(");
 const startsWithDoubleQuote = startsWith("\"");
 const startsWithCurlyBrace = startsWith("{");
 const startsWithSquareBracket = startsWith("[");
+const startsWithHashRoundBracket = startsWith("#(");
 
 function parse(str) {
   const str1 = dropSpaces(str);
@@ -26,9 +27,34 @@ function parse(str) {
     [startsWithColon,             parseSymbol],
     [startsWithSquareBracket,     parseVector],
     [startsWithHashDoubleQuote,   parseRegEx],
+    [startsWithHashRoundBracket,  parseShortLambda],
     [isNil,                       R.always(null)],
     [R.T,                         parseIdentifier]
   ])(str1);
+}
+
+const splitAfterMatchingBracket = R.curry(function (openBracket, closeBracket, str) {
+  function throwError() {
+    throw new Error("Unbalanced brackets");
+  }
+
+  function split(left, right, bracketCount) {
+    const h = R.head(right);
+    return R.cond([
+      [() => bracketCount === 0, () => [left, right]],
+      [() => isEmptyString(right), throwError],
+      [() => h === openBracket, () => split(left + h, R.tail(right), bracketCount + 1)],
+      [() => h === closeBracket, () => split(left + h, R.tail(right), bracketCount - 1)],
+      [R.T, () => split(left + h, R.tail(right), bracketCount)]
+    ])();
+  }
+
+  return split(R.head(str), R.tail(str), 1);
+});
+
+function parseShortLambda(str) {
+  const list = parseListBody(R.tail(str));
+  return Object.defineProperty(list, "type", {value: "slambda", enumerable: false});
 }
 
 function parseRegEx(str) {
@@ -100,13 +126,19 @@ function stripBrackets(str) {
 
 function splitAfterNextToken(str) {
   const str1 = dropSpaces(str);
+  const dropHeadAndAppendSplit = R.curry((openB, closeB, str) => {
+    const h = R.head(str);
+    const [left, right] = splitAfterMatchingBracket(openB, closeB, R.drop(1, str));
+    return [h + left, right];
+  });
 
   return R.cond([
-    [startsWithRoundBracket,  splitAfterMatchingBracket.bind(null, "(", ")")],
-    [startsWithCurlyBrace,    splitAfterMatchingBracket.bind(null, "{", "}")],
-    [startsWithSquareBracket, splitAfterMatchingBracket.bind(null, "[", "]")],
-    [startsWithDoubleQuote,   splitAfterQuoteEnd],
-    [R.T,                     splitOnNextSpace]
+    [startsWithRoundBracket,      splitAfterMatchingBracket("(", ")")],
+    [startsWithCurlyBrace,        splitAfterMatchingBracket("{", "}")],
+    [startsWithSquareBracket,     splitAfterMatchingBracket("[", "]")],
+    [startsWithDoubleQuote,       splitAfterQuoteEnd],
+    [startsWithHashRoundBracket,  dropHeadAndAppendSplit("(", ")")],
+    [R.T,                         splitOnNextSpace]
   ])(str1);
 }
 
@@ -138,25 +170,6 @@ function dropSpaces(str) {
 
 function isEmptyString(str) {
   return str.trim().length === 0;
-}
-
-function splitAfterMatchingBracket(openBracket, closeBracket, str) {
-  function throwError() {
-    throw new Error("Unbalanced brackets");
-  }
-
-  function split(left, right, bracketCount) {
-    const h = R.head(right);
-    return R.cond([
-      [() => bracketCount === 0, () => [left, right]],
-      [() => isEmptyString(right), throwError],
-      [() => h === openBracket, () => split(left + h, R.tail(right), bracketCount + 1)],
-      [() => h === closeBracket, () => split(left + h, R.tail(right), bracketCount - 1)],
-      [R.T, () => split(left + h, R.tail(right), bracketCount)]
-    ])();
-  }
-
-  return split(R.head(str), R.tail(str), 1);
 }
 
 function splitAt(at, str) {
