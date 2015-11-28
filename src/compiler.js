@@ -83,7 +83,7 @@ function isLambdaDefinition(val) {
 }
 
 function isNil(val) {
-  return val.type === "identifier" && val.value === "nil";
+  return val === null;
 }
 
 function compileNil() {

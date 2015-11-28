@@ -13,6 +13,7 @@ function parse(str) {
   const isBoolean = $ => $ === "true" || $ === "false";
   const startsWithColon = startsWith(":");
   const startsWithHashBracket = startsWith("#{");
+  const isNil = R.equals("nil");
 
   return R.cond([
     [startsWithRoundBracket,  parseList],
@@ -23,6 +24,7 @@ function parse(str) {
     [startsWithHashBracket,   parseSet],
     [startsWithColon,         parseSymbol],
     [startsWithSquareBracket, parseVector],
+    [isNil,                   R.always(null)],
     [R.T,                     parseIdentifier]
   ])(str1);
 }
