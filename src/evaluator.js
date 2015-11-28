@@ -2,28 +2,32 @@ const R = require("ramda");
 const parse = require("./parser");
 
 const symbolTable = {
-  "print": console.log.bind(console),
-  "println": console.log.bind(console),
-  "+": (...args) => args.reduce(R.add),
-  "-": (...args) => args.reduce(R.subtract),
-  "*": (...args) => args.reduce(R.multiply),
-  "/": (...args) => args.reduce(R.divide),
-  "=": (...args) => args.reduce(Object.is),
-  "mod": R.mathMod,
-  "inc": R.inc,
-  "dec": R.dec,
-  "map": (fn, list) => R.map($ => $, list),
-  "filter": R.filter,
-  "range": (stop, start = 0) => R.range(start, stop),
-  "count": R.length,
-  "first": R.head,
-  "last": R.last,
-  "rest": R.tail,
+  "print": (_, ...args) => console.log(...args),
+  "println": (_, ...args) => console.log(...args),
+  "+": (_, ...args) => args.reduce(R.add),
+  "-": (_, ...args) => args.reduce(R.subtract),
+  "*": (_, ...args) => args.reduce(R.multiply),
+  "/": (_, ...args) => args.reduce(R.divide),
+  "=": (_, ...args) => args.reduce(Object.is),
+  "mod": (_, x, y) => R.mathMod(x, y),
+  "inc": (_, x) => R.inc(x),
+  "dec": (_, x) => R.dec(x),
+  "map": (symTbl, fn, list) => R.map($ => invokeFunction(symTbl, fn, [$]), list),
+  "filter": (symTbl, fn, list) => R.filter($ => invokeFunction(symTbl, fn, [$]), list),
+  "range": (_, stop, start = 0) => R.range(start, stop),
+  "count": (_, x) => R.length(x),
+  "first": (_, x) => R.head(x),
+  "last": (_, x) => R.last(x),
+  "rest": (_, x) => R.tail(x),
+  "even?": (_, x) => x % 2 === 0,
+  "zero?": (_, x) => x === 0,
 };
+const isLambda = R.propEq("type", "lambda");
+const isJsFunction = R.compose(R.equals("Function"), R.type);
 
 const ast = parse("[" +
 `
-(map (fn [x] x) (range 10))
+(filter (fn [x] (zero? (mod x 2))) (range 20 10))
 ` + "]");
 // console.log(ast);
 console.log(R.last(ast.map(evaluate.bind(null, symbolTable))));
@@ -43,6 +47,8 @@ function evaluate(symbolTable, ast) {
     [isNumber,      R.identity],
     [isBoolean,     R.identity],
     [isVector,      R.identity],
+    [isLambda,      R.identity],
+    [isJsFunction,  R.identity],
     [isList,        evalList.bind(null, symbolTable)],
     [isIdentifier,  id => lookupIdentifier(symbolTable, id.value)],
   ])(ast);
@@ -95,15 +101,11 @@ function registerDefinition(symbolTable, args) {
 
 function invokeFunction(symbolTable, fn, args) {
   const fun = evaluate(symbolTable, fn);
-  const isLambda = R.propEq("type", "lambda");
-  const jsFunction = R.compose(R.equals("Function"), R.type);
   const evaledArgs = args.map(evaluate.bind(null, symbolTable));
-
-  console.log(evaledArgs);
 
   return R.cond([
     [isLambda, () => executeLambda(symbolTable, fun, evaledArgs)],
-    [jsFunction, () => fun.apply(null, evaledArgs)],
+    [isJsFunction, () => fun.apply(null, [symbolTable].concat(evaledArgs))],
     [R.T, () => new Error("Error in invokeFunction")]
   ])(fun);
 }
@@ -111,6 +113,5 @@ function invokeFunction(symbolTable, fn, args) {
 function executeLambda(symbolTable, fn, args) {
   const paramNames = fn.params.map(x => x.value);
   const newSymbolTable = R.merge(symbolTable, R.fromPairs(R.zip(paramNames, args)));
-
   return R.last(fn.body.map(evaluate.bind(null, newSymbolTable)));
 }
