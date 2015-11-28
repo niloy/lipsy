@@ -13,20 +13,27 @@ function parse(str) {
   const isBoolean = $ => $ === "true" || $ === "false";
   const startsWithColon = startsWith(":");
   const startsWithHashBracket = startsWith("#{");
+  const startsWithHashDoubleQuote = startsWith("#\"");
   const isNil = R.equals("nil");
 
   return R.cond([
-    [startsWithRoundBracket,  parseList],
-    [isNumber,                parseNumber],
-    [startsWithDoubleQuote,   parseString],
-    [startsWithCurlyBrace,    parseMap],
-    [isBoolean,               parseBoolean],
-    [startsWithHashBracket,   parseSet],
-    [startsWithColon,         parseSymbol],
-    [startsWithSquareBracket, parseVector],
-    [isNil,                   R.always(null)],
-    [R.T,                     parseIdentifier]
+    [startsWithRoundBracket,      parseList],
+    [isNumber,                    parseNumber],
+    [startsWithDoubleQuote,       parseString],
+    [startsWithCurlyBrace,        parseMap],
+    [isBoolean,                   parseBoolean],
+    [startsWithHashBracket,       parseSet],
+    [startsWithColon,             parseSymbol],
+    [startsWithSquareBracket,     parseVector],
+    [startsWithHashDoubleQuote,   parseRegEx],
+    [isNil,                       R.always(null)],
+    [R.T,                         parseIdentifier]
   ])(str1);
+}
+
+function parseRegEx(str) {
+  const body = stripBrackets(R.tail(str));
+  return new RegExp(body);
 }
 
 function parseSymbol(str) {
@@ -126,7 +133,7 @@ function parseListBody(str) {
 }
 
 function dropSpaces(str) {
-  return R.dropWhile(R.test(/\s/), str).join("");
+  return str.trim();
 }
 
 function isEmptyString(str) {
