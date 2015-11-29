@@ -27,13 +27,15 @@ const symbolTable = {
 const isLambda = R.propEq("type", "lambda");
 const isJsFunction = R.compose(R.equals("Function"), R.type);
 
-// const ast = parse("[" +
-// `
-// ((fn [x] x) 1)
-// ` + "]");
-// console.log(R.last(ast.map(evaluate.bind(null, symbolTable))));
-const ast = `(reduce + 0 (range 10))`;
-console.log(evaluate(symbolTable, parse(ast)));
+const ast = parse("[" +
+`
+(def p (fn [x] (print x) x))
+
+((fn [x y z] (+ x x x)) (p 2) (p 3) (p 4))
+` + "]");
+console.log(R.last(ast.map(evaluate.bind(null, symbolTable))));
+// const ast = `((fn [x y z] 1 (inc 1) (inc 2) (inc 3))`;
+// console.log(evaluate(symbolTable, parse(ast)));
 
 function evaluate(symbolTable, ast) {
   const isString = $ => typeof $ === "string";
@@ -69,7 +71,9 @@ function compileSLambda(symbolTable, args) {
 }
 
 function lookupIdentifier(symbolTable, id) {
-  return (id in symbolTable) ? symbolTable[id] : eval(id);
+  const isLazy = R.propEq("type", "lazyExp");
+  const resolveIfLazy = R.ifElse(isLazy, resolveLazyExpression, R.identity);
+  return (id in symbolTable) ? resolveIfLazy(symbolTable[id]) : eval(id);
 }
 
 function evalList(symbolTable, list) {
@@ -113,13 +117,30 @@ function registerDefinition(symbolTable, args) {
   return value;
 }
 
+function createLazyExpression(symbolTable, ast) {
+  return {symbolTable, ast, resolved: false, value: null, type: "lazyExp"};
+}
+
+function resolveLazyExpression(expression) {
+  const isResolved = R.propEq("resolved", true);
+  const getValue = R.path(["value"]);
+  const resolveAndGetValue = exp => {
+    const value = evaluate(expression.symbolTable, expression.ast);
+    exp.value = value;
+    exp.resolved = true;
+    return value;
+  };
+  return R.ifElse(isResolved, getValue, resolveAndGetValue)(expression);
+}
+
 function invokeFunction(symbolTable, fn, args) {
   const fun = evaluate(symbolTable, fn);
-  const evaledArgs = args.map(evaluate.bind(null, symbolTable));
+  const evaledArgs = () => args.map(evaluate.bind(null, symbolTable));
+  const lazyArgs = () => args.map(createLazyExpression.bind(null, symbolTable));
 
   return R.cond([
-    [isLambda, () => executeLambda(symbolTable, fun, evaledArgs)],
-    [isJsFunction, () => fun.apply(null, [symbolTable].concat(evaledArgs))],
+    [isLambda, () => executeLambda(symbolTable, fun, lazyArgs())],
+    [isJsFunction, () => fun.apply(null, [symbolTable].concat(evaledArgs()))],
     [R.T, () => new Error("Error in invokeFunction")]
   ])(fun);
 }
