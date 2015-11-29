@@ -53,7 +53,7 @@ const splitAfterMatchingBracket = R.curry(function (openBracket, closeBracket, s
 });
 
 function parseShortLambda(str) {
-  const list = parseListBody(R.tail(str));
+  const list = parseListBody(stripBrackets(R.tail(str)));
   return Object.defineProperty(list, "type", {value: "slambda", enumerable: false});
 }
 
