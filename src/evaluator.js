@@ -29,9 +29,11 @@ const isJsFunction = R.compose(R.equals("Function"), R.type);
 
 const ast = parse("[" +
 `
-(def p (fn [x] (print x) x))
+(def p (fn [x] (print "Evaluated") x))
 
-((fn [x y z] (+ x x x)) (p 2) (p 3) (p 4))
+(def a (p 5))
+
+(print a)
 ` + "]");
 console.log(R.last(ast.map(evaluate.bind(null, symbolTable))));
 // const ast = `((fn [x y z] 1 (inc 1) (inc 2) (inc 3))`;
@@ -112,9 +114,8 @@ function evalConditional(symbolTable, args) {
 
 function registerDefinition(symbolTable, args) {
   const name = R.head(args).value;
-  const value = evaluate(symbolTable, R.last(args));
-  symbolTable[name] = value;
-  return value;
+  const lazyExp = createLazyExpression(symbolTable, R.last(args));
+  symbolTable[name] = lazyExp;
 }
 
 function createLazyExpression(symbolTable, ast) {
