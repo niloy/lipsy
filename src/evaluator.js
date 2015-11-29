@@ -14,6 +14,8 @@ const symbolTable = {
   "dec": (_, x) => R.dec(x),
   "map": (symTbl, fn, list) => R.map($ => invokeFunction(symTbl, fn, [$]), list),
   "filter": (symTbl, fn, list) => R.filter($ => invokeFunction(symTbl, fn, [$]), list),
+  "reduce": (symTbl, fn, seed, list) =>
+    R.reduce((a, b) => invokeFunction(symTbl, fn, [a, b]), seed, list),
   "range": (_, stop, start = 0) => R.range(start, stop),
   "count": (_, x) => R.length(x),
   "first": (_, x) => R.head(x),
@@ -30,7 +32,7 @@ const isJsFunction = R.compose(R.equals("Function"), R.type);
 // ((fn [x] x) 1)
 // ` + "]");
 // console.log(R.last(ast.map(evaluate.bind(null, symbolTable))));
-const ast = `(map #(* % %) (range 10))`;
+const ast = `(reduce + 0 (range 10))`;
 console.log(evaluate(symbolTable, parse(ast)));
 
 function evaluate(symbolTable, ast) {
