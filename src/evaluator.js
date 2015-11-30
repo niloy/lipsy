@@ -29,11 +29,12 @@ const isJsFunction = R.compose(R.equals("Function"), R.type);
 
 const ast = parse("[" +
 `
-(def p (fn [x] (print "Evaluated") x))
+(def cons (fn [ele seq] [ele seq (+ ele seq)]))
 
-(def a (p 5))
+(def a (cons 1 a))
+(def b (cons 1 2))
 
-(print a)
+(print b)
 ` + "]");
 console.log(R.last(ast.map(evaluate.bind(null, symbolTable))));
 // const ast = `((fn [x y z] 1 (inc 1) (inc 2) (inc 3))`;
@@ -54,13 +55,17 @@ function evaluate(symbolTable, ast) {
     [isString,      R.identity],
     [isNumber,      R.identity],
     [isBoolean,     R.identity],
-    [isVector,      R.identity],
+    [isVector,      evalVector.bind(null, symbolTable)],
     [isLambda,      R.identity],
     [isJsFunction,  R.identity],
     [isShortLambda, compileSLambda.bind(null, symbolTable)],
     [isList,        evalList.bind(null, symbolTable)],
     [isIdentifier,  id => lookupIdentifier(symbolTable, id.value)],
   ])(ast);
+}
+
+function evalVector(symbolTable, args) {
+  return args.map(evaluate.bind(null, symbolTable));
 }
 
 function toList(args) {
