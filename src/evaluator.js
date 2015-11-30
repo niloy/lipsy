@@ -29,12 +29,9 @@ const isJsFunction = R.compose(R.equals("Function"), R.type);
 
 const ast = parse("[" +
 `
-(def cons (fn [ele seq] [ele seq (+ ele seq)]))
+(def add (fn [a] (fn [b] (+ a b))))
 
-(def a (cons 1 a))
-(def b (cons 1 2))
-
-(print b)
+((add 2) 3)
 ` + "]");
 console.log(R.last(ast.map(evaluate.bind(null, symbolTable))));
 // const ast = `((fn [x y z] 1 (inc 1) (inc 2) (inc 3))`;
@@ -106,6 +103,7 @@ function compileLambda(symbolTable, args) {
     params: params,
     body: body,
     arity: params.length,
+    symbolTable,
   };
 }
 
@@ -158,6 +156,6 @@ function executeLambda(symbolTable, fn, args) {
   const positionalBindings = R.zip(positionalParamNames, args);
   const allBindings = [["%", R.head(args)], ["%&", args]]
                         .concat(positionalBindings).concat(namedBindings);
-  const newSymbolTable = R.merge(symbolTable, R.fromPairs(allBindings));
+  const newSymbolTable = R.mergeAll([fn.symbolTable, symbolTable, R.fromPairs(allBindings)]);
   return R.last(fn.body.map(evaluate.bind(null, newSymbolTable)));
 }
