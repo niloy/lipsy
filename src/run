@@ -1,0 +1,21 @@
+#!./node_modules/.bin/babel-node
+
+const fs = require("fs");
+const R = require("ramda");
+const parse = require("./parser");
+const evaluate = require("./evaluator");
+
+const args = process.argv;
+const removeHashBangIfPresent = R.replace(/^#!.*/, "");
+const processFile = R.pipe(
+  file => fs.readFileSync(file, "utf-8"),
+  removeHashBangIfPresent,
+  str => "[" + str + "]",
+  parse,
+  R.map(evaluate)
+);
+const fileNameMissing = args => args.length < 3;
+const signalMissingFile = console.error.bind("Please provide script file to execute");
+const extractFileNameAndProcess = R.compose(processFile, R.nth(2));
+
+R.ifElse(fileNameMissing, signalMissingFile, extractFileNameAndProcess)(args);

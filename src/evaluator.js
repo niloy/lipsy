@@ -1,5 +1,5 @@
+"use strict";
 const R = require("ramda");
-const parse = require("./parser");
 
 const symbolTable = {
   "print": (_, ...args) => console.log(...args),
@@ -24,19 +24,16 @@ const symbolTable = {
   "even?": (_, x) => x % 2 === 0,
   "zero?": (_, x) => x === 0,
 };
+
+module.exports = function(str) {
+  return evaluate(symbolTable, str);
+};
+
 const isLambda = R.propEq("type", "lambda");
 const isJsFunction = R.compose(R.equals("Function"), R.type);
 const isVector = Array.isArray;
 const isIdentifier = $ => $.type === "identifier";
 const isLazyExp = R.propEq("type", "lazyExp");
-
-// const ast = parse("[" +
-// `
-// (def dropFirst (fn [x b rest] rest))
-// ` + "]");
-// console.log(R.last(ast.map(evaluate.bind(null, symbolTable))));
-const ast = `((fn [x y & rest] rest) 1 2 3 4 5)`;
-console.log(evaluate(symbolTable, parse(ast)));
 
 function evaluate(symbolTable, ast) {
   const isString = $ => typeof $ === "string";
