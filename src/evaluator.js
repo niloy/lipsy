@@ -26,21 +26,17 @@ const symbolTable = {
 };
 const isLambda = R.propEq("type", "lambda");
 const isJsFunction = R.compose(R.equals("Function"), R.type);
-const isVector = $ => $.type === "vector";
+const isVector = Array.isArray;
 const isIdentifier = $ => $.type === "identifier";
 const isLazyExp = R.propEq("type", "lazyExp");
 
-const ast = parse("[" +
-`
-(def PI 3)
-
-(def add (fn [[x y]] (+ x y)))
-
-(add [(+ 1 PI) 2])
-` + "]");
-console.log(R.last(ast.map(evaluate.bind(null, symbolTable))));
-// const ast = `((fn [x y z] 1 (inc 1) (inc 2) (inc 3))`;
-// console.log(evaluate(symbolTable, parse(ast)));
+// const ast = parse("[" +
+// `
+// (def dropFirst (fn [x b rest] rest))
+// ` + "]");
+// console.log(R.last(ast.map(evaluate.bind(null, symbolTable))));
+const ast = `((fn [x y & rest] rest) 1 2 3 4 5)`;
+console.log(evaluate(symbolTable, parse(ast)));
 
 function evaluate(symbolTable, ast) {
   const isString = $ => typeof $ === "string";
@@ -55,13 +51,19 @@ function evaluate(symbolTable, ast) {
     [isString,      R.identity],
     [isNumber,      R.identity],
     [isBoolean,     R.identity],
-    [isVector,      evalVector.bind(null, symbolTable)],
     [isLambda,      R.identity],
     [isJsFunction,  R.identity],
     [isShortLambda, compileSLambda.bind(null, symbolTable)],
     [isList,        evalList.bind(null, symbolTable)],
+    [isVector,      evalVector.bind(null, symbolTable)],
     [isIdentifier,  id => lookupIdentifier(symbolTable, id.value)],
+    [R.T,           throwError.bind(null, "Unable to evaluate", ast)]
   ])(ast);
+}
+
+function throwError(msg, arg) {
+  console.log(arg);
+  throw new Error("Exception: " + msg);
 }
 
 function evalVector(symbolTable, args) {
@@ -174,15 +176,18 @@ function destructureIdentifier(identifer, value) {
 }
 
 function destructureVector(names, values) {
+  const isRestArg = R.compose(R.propEq("value", "&"), R.head);
   const isEmpty = (names, values) => R.isEmpty(names) || R.isEmpty(values);
   const destructureAndCollect = (names, values) => {
     const first = destructure(R.head(names), R.head(values));
     const rest = destructureVector(R.tail(names), R.tail(values));
     return first.concat(rest);
   };
+  const collectRestArg = (names, values) => destructure(R.nth(1, names), values);
 
   return R.cond([
     [isEmpty,   () => []],
+    [isRestArg, collectRestArg],
     [R.T,       destructureAndCollect]
   ])(names, values);
 }
