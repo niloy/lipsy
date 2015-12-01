@@ -26,12 +26,17 @@ const symbolTable = {
 };
 const isLambda = R.propEq("type", "lambda");
 const isJsFunction = R.compose(R.equals("Function"), R.type);
+const isVector = $ => $.type === "vector";
+const isIdentifier = $ => $.type === "identifier";
+const isLazyExp = R.propEq("type", "lazyExp");
 
 const ast = parse("[" +
 `
-(def add (fn [a] (fn [b] (+ a b))))
+(def PI 3)
 
-((add 2) 3)
+(def add (fn [[x y]] (+ x y)))
+
+(add [(+ 1 PI) 2])
 ` + "]");
 console.log(R.last(ast.map(evaluate.bind(null, symbolTable))));
 // const ast = `((fn [x y z] 1 (inc 1) (inc 2) (inc 3))`;
@@ -42,8 +47,6 @@ function evaluate(symbolTable, ast) {
   const isNumber = $ => typeof $ === "number";
   const isBoolean = $ => typeof $ === "boolean";
   const isList = $ => $.type === "list";
-  const isIdentifier = $ => $.type === "identifier";
-  const isVector = $ => $.type === "vector";
   const isNil = R.equals(null);
   const isShortLambda = $ => $.type === "slambda";
 
@@ -75,8 +78,7 @@ function compileSLambda(symbolTable, args) {
 }
 
 function lookupIdentifier(symbolTable, id) {
-  const isLazy = R.propEq("type", "lazyExp");
-  const resolveIfLazy = R.ifElse(isLazy, resolveLazyExpression, R.identity);
+  const resolveIfLazy = R.ifElse(isLazyExp, resolveLazyExpression, R.identity);
   return (id in symbolTable) ? resolveIfLazy(symbolTable[id]) : eval(id);
 }
 
@@ -140,22 +142,47 @@ function resolveLazyExpression(expression) {
 function invokeFunction(symbolTable, fn, args) {
   const fun = evaluate(symbolTable, fn);
   const evaledArgs = () => args.map(evaluate.bind(null, symbolTable));
-  const lazyArgs = () => args.map(createLazyExpression.bind(null, symbolTable));
 
   return R.cond([
-    [isLambda, () => executeLambda(symbolTable, fun, lazyArgs())],
+    [isLambda, () => executeLambda(symbolTable, fun, args)],
     [isJsFunction, () => fun.apply(null, [symbolTable].concat(evaledArgs()))],
     [R.T, () => new Error("Error in invokeFunction")]
   ])(fun);
 }
 
 function executeLambda(symbolTable, fn, args) {
-  const paramNames = fn.params.map(x => x.value);
-  const namedBindings = R.zip(paramNames, args);
+  const createLaxyExp = ([name, value]) => [name, createLazyExpression(symbolTable, value)];
+  const namedBindings = destructure(fn.params, args).map(createLaxyExp);
   const positionalParamNames = R.range(0, args.length).map(R.inc).map(R.concat("%"));
   const positionalBindings = R.zip(positionalParamNames, args);
   const allBindings = [["%", R.head(args)], ["%&", args]]
                         .concat(positionalBindings).concat(namedBindings);
   const newSymbolTable = R.mergeAll([fn.symbolTable, symbolTable, R.fromPairs(allBindings)]);
   return R.last(fn.body.map(evaluate.bind(null, newSymbolTable)));
+}
+
+function destructure(name, value) {
+  return R.cond([
+    [isVector,      destructureVector],
+    [isIdentifier,  destructureIdentifier],
+    [R.T, () =>     new Error("Unable to destructure")]
+  ])(name, value);
+}
+
+function destructureIdentifier(identifer, value) {
+  return [[identifer.value, value]];
+}
+
+function destructureVector(names, values) {
+  const isEmpty = (names, values) => R.isEmpty(names) || R.isEmpty(values);
+  const destructureAndCollect = (names, values) => {
+    const first = destructure(R.head(names), R.head(values));
+    const rest = destructureVector(R.tail(names), R.tail(values));
+    return first.concat(rest);
+  };
+
+  return R.cond([
+    [isEmpty,   () => []],
+    [R.T,       destructureAndCollect]
+  ])(names, values);
 }
