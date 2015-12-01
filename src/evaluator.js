@@ -23,10 +23,13 @@ const symbolTable = {
   "rest": (_, x) => R.tail(x),
   "even?": (_, x) => x % 2 === 0,
   "zero?": (_, x) => x === 0,
+  "nth": (_, x, seq) => R.nth(x, seq),
+  "int": (_, x) => parseInt(x, 10),
 };
 
-module.exports = function(str) {
-  return evaluate(symbolTable, str);
+module.exports = function(symbols, ast) {
+  const symTbl = R.merge(symbolTable, symbols);
+  return ast.map(evaluate.bind(null, symTbl));
 };
 
 const isLambda = R.propEq("type", "lambda");

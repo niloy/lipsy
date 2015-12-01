@@ -6,13 +6,14 @@ const parse = require("./parser");
 const evaluate = require("./evaluator");
 
 const args = process.argv;
+const symbols = {"*command-line-args*": R.tail(args)};
 const removeHashBangIfPresent = R.replace(/^#!.*/, "");
 const processFile = R.pipe(
   file => fs.readFileSync(file, "utf-8"),
   removeHashBangIfPresent,
   str => "[" + str + "]",
   parse,
-  R.map(evaluate)
+  evaluate.bind(null, symbols)
 );
 const fileNameMissing = args => args.length < 3;
 const signalMissingFile = console.error.bind("Please provide script file to execute");
