@@ -18,7 +18,7 @@ const symbolTable = {
     R.reduce((a, b) => invokeFunction(symTbl, fn, [a, b]), seed, list),
   "range": (_, stop, start = 0) => R.range(start, stop),
   "count": (_, x) => R.length(x),
-  "first": (_, x) => R.head(x),
+  "first": (_, x) => x[0],
   "last": (_, x) => R.last(x),
   "rest": (_, x) => R.tail(x),
   "even?": (_, x) => x % 2 === 0,
@@ -134,7 +134,7 @@ function resolveLazyExpression(expression) {
   const getValue = R.path(["value"]);
   const resolveAndGetValue = exp => {
     const value = evaluate(expression.symbolTable, expression.ast);
-    exp.value = value;
+    exp.value = isLazyExp(value) ? resolveLazyExpression(value) : value;
     exp.resolved = true;
     return value;
   };

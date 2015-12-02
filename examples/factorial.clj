@@ -3,4 +3,7 @@
 (def factorial (fn [x]
   (if (zero? x) 1 (* x (factorial (dec x))))))
 
-(print (if (= N 3) (factorial (int N)) "Please pass number as parameter"))
+(print
+  (if (= (count *command-line-args*) 3)
+    (factorial (int N))
+    "Please provide number as command line parameter"))
