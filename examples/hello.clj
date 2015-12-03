@@ -1,2 +1,2 @@
-#!./src/run
+#!./src/lipsy
 (print "Hello World")
