@@ -18,7 +18,7 @@ const processFile = R.pipe(
   evaluate.bind(null, symbols)
 );
 const fileNameMissing = args => args.length < 3;
-const signalMissingFile = console.error.bind("Please provide script file to execute");
+const signalMissingFile = () => console.error("Please provide script file to execute");
 const extractFileNameAndProcess = R.compose(processFile, R.nth(2));
 
 R.ifElse(fileNameMissing, signalMissingFile, extractFileNameAndProcess)(args);
