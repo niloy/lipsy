@@ -25,6 +25,8 @@ const symbolTable = {
   "zero?": (_, x) => x === 0,
   "nth": (_, x, seq) => R.nth(x, seq),
   "int": (_, x) => parseInt(x, 10),
+  "second": (_, x) => evaluate(_, x[1]),
+  "cons": (_, ele, seq) => [ele].concat(seq),
 };
 
 module.exports = function(symbols, ast) {
@@ -55,7 +57,7 @@ function evaluate(symbolTable, ast) {
     [isJsFunction,  R.identity],
     [isShortLambda, compileSLambda.bind(null, symbolTable)],
     [isList,        evalList.bind(null, symbolTable)],
-    [isVector,      evalVector.bind(null, symbolTable)],
+    [isVector,      R.identity],
     [isIdentifier,  id => lookupIdentifier(symbolTable, id.value)],
     [R.T,           throwError.bind(null, "Unable to evaluate", ast)]
   ])(ast);
@@ -64,10 +66,6 @@ function evaluate(symbolTable, ast) {
 function throwError(msg, arg) {
   console.log(arg);
   throw new Error("Exception: " + msg);
-}
-
-function evalVector(symbolTable, args) {
-  return args.map(evaluate.bind(null, symbolTable));
 }
 
 function toList(args) {
