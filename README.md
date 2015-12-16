@@ -1,5 +1,7 @@
 ## A Lisp/Clojure dialect implementation in JS.
 
+[Online Demo](http://niloy.github.io/lipsy/index.html)
+
 This is a toy programming language implemented using functional javascript. An
 attemp to learn both both functional JS and Clojure. Implementing a turing
 complete language in so few lines of code was incredibly fun.
