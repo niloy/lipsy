@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Lipsy</title>
+  <script src="dist/ramda.js"></script>
+  <script src="dist/demo.js"></script>
+</head>
+<body style="max-width: 1000px; margin: 0 auto;">
+  <h1>Lipsy</h1>
+
+  <textarea id="codebox1" style="width: 100%">(alert "Hello World")</textarea>
+  <button id="run1">Run</button>
+
+  <h3>Function declaration</h3>
+  <textarea id="codebox2" style="width: 100%; height: 70px;">
+    (def factorial (fn [x]
+      (if (zero? x) 1 (* x (factorial (dec x))))))
+
+    (alert (factorial 5))
+  </textarea>
+  <button id="run2">Run</button>
+
+  <h3>List evens</h3>
+  <textarea id="codebox3" style="width: 100%">
+  ;; Printing in console
+  (print (filter even? (range 50)))
+  </textarea>
+  <button id="run3">Run</button>
+
+  <h3>Short-hand lambda</h3>
+  <textarea id="codebox4" style="width: 100%">
+  ;; Printing in console
+  (map #(* % %) (range 10))
+  </textarea>
+  <button id="run4">Run</button>
+
+  <h3>Rest Args</h3>
+  <textarea id="codebox5" style="width: 100%; height: 50px;">
+  (def allExceptFirst (fn [x & more] more))
+
+  (allExceptFirst 1 2 3 4)
+  </textarea>
+  <button id="run5">Run</button>
+
+  <h3>Closure</h3>
+  <textarea id="codebox6" style="width: 100%; height: 80px;">
+  (def add (fn [x] (fn [y] (+ x y))))
+
+  (def add5 (add 5))
+
+  (print (add5 2))
+  </textarea>
+  <button id="run6">Run</button>
+
+  <h3>JS Interop</h3>
+  <textarea id="codebox7" style="width: 100%;">
+  (alert (Math.pow 2 3))
+  </textarea>
+  <button id="run7">Run</button>
+
+  <h3>Lazy Evaluation</h3>
+  <textarea id="codebox8" style="width: 100%; height: 170px;">
+  (def echo (fn [x] (alert x) x))
+
+  (def returnFirst (fn [x] x))
+
+  ;; Because the function 'returnFirst' only uses first parameter, only '1' will
+  ;; be printed. The arguments while invoking a function are not immediately
+  ;; evaluated. Arguments are evaluated on demand.
+  (returnFirst (echo 1) (echo 2) (echo 3))
+  </textarea>
+  <button id="run8">Run</button>
+</body>
+</html>

@@ -11,13 +11,19 @@
   "babel": {
     "plugins": [
       "transform-es2015-destructuring",
-      "transform-es2015-parameters"
+      "transform-es2015-parameters",
+      "transform-es2015-spread"
     ]
   },
   "dependencies": {
     "babel-cli": "^6.2.0",
+    "babel-plugin-syntax-object-rest-spread": "^6.3.13",
     "babel-plugin-transform-es2015-destructuring": "^6.1.18",
     "babel-plugin-transform-es2015-parameters": "^6.1.18",
-    "ramda": "^0.18.0"
+    "babel-plugin-transform-es2015-spread": "^6.3.14",
+    "babelify": "^7.2.0",
+    "browserify": "^12.0.1",
+    "ramda": "^0.18.0",
+    "uglify": "^0.1.5"
   }
 }

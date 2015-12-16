@@ -142,11 +142,15 @@ function resolveLazyExpression(expression) {
 function invokeFunction(symbolTable, fn, args) {
   const fun = evaluate(symbolTable, fn);
   const evaledArgs = () => args.map(evaluate.bind(null, symbolTable));
+  const inSymbolTable = value => R.contains(value, R.values(symbolTable));
+  const notInSymbolTable = R.complement(inSymbolTable);
+  const isPureJSFunction = R.both(notInSymbolTable, isJsFunction);
 
   return R.cond([
-    [isLambda, () => executeLambda(symbolTable, fun, args)],
-    [isJsFunction, () => fun.apply(null, [symbolTable].concat(evaledArgs()))],
-    [R.T, () => new Error("Error in invokeFunction")]
+    [isLambda,          () => executeLambda(symbolTable, fun, args)],
+    [isPureJSFunction,  () => fun(...evaledArgs())],
+    [isJsFunction,      () => fun.apply(null, [symbolTable].concat(evaledArgs()))],
+    [R.T,               () => new Error("Error in invokeFunction")]
   ])(fun);
 }
 
